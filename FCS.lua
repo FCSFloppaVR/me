@@ -1,10 +1,11 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
--- Use CoreGui to prevent GUI from disappearing
+-- Use CoreGui to avoid deletion on reset
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FCS_Menu"
 ScreenGui.ResetOnSpawn = false
@@ -94,7 +95,7 @@ local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
--- Improved ESP Logic
+-- ESP
 local function createESP()
 	for _, plr in pairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
@@ -144,7 +145,7 @@ circle.Filled = false
 RunService.RenderStepped:Connect(function()
 	if _G.headTrack then
 		circle.Visible = true
-		circle.Position = Vector2.new(mouse.X, mouse.Y + 3) -- Fix circle too high
+		circle.Position = Vector2.new(mouse.X, mouse.Y + 3)
 		circle.Radius = circleSize
 		circle.Color = circleColor
 
@@ -166,7 +167,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Settings - Color Picker & Slider
+-- Settings: Color Pickers + Slider
 local function createColorPicker(parent, labelText, defaultColor, callback)
 	local label = Instance.new("TextLabel", parent)
 	label.Text = labelText
@@ -213,11 +214,10 @@ local function createSlider(parent)
 	return slider
 end
 
--- Populate "Stuff"
+-- Populate Tabs
 createCheckbox(Pages["Stuff"], "ESP").Position = UDim2.new(0, 10, 0, 0)
 createCheckbox(Pages["Stuff"], "Head Track").Position = UDim2.new(0, 10, 0, 40)
 
--- Populate "Settings"
 createColorPicker(Pages["Settings"], "ESP Color (r,g,b):", espBoxColor, function(color)
 	espBoxColor = color
 end)
@@ -243,5 +243,13 @@ end)
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.BackSlash then
 		MainFrame.Visible = not MainFrame.Visible
+
+		if MainFrame.Visible then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		else
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			UserInputService.MouseIconEnabled = false
+		end
 	end
 end)
