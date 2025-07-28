@@ -1,14 +1,16 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
--- GUI Creation
-local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+-- Use CoreGui to prevent GUI from disappearing
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FCS_Menu"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
+-- GUI: Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 250)
 MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
@@ -19,7 +21,7 @@ MainFrame.Draggable = true
 MainFrame.Visible = true
 MainFrame.ClipsDescendants = true
 
--- Rounded corners
+-- Rounded Corners
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 10)
 
@@ -92,18 +94,26 @@ local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
--- ESP Logic
+-- Improved ESP Logic
 local function createESP()
 	for _, plr in pairs(Players:GetPlayers()) do
-		if plr ~= player and not plr.Character:FindFirstChild("Head"):FindFirstChild("FCS_Box") then
-			local head = plr.Character:FindFirstChild("Head")
-			if head then
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+			local head = plr.Character.Head
+			if not head:FindFirstChild("FCS_Box") then
 				local box = Instance.new("BillboardGui", head)
 				box.Name = "FCS_Box"
-				box.Size = UDim2.new(0, 50, 0, 50)
+				box.Size = UDim2.new(0, 80, 0, 40)
 				box.AlwaysOnTop = true
-				local frame = Instance.new("Frame", box)
-				frame.Size = UDim2.new(1, 0, 1, 0)
+				box.LightInfluence = 0
+
+				local outline = Instance.new("Frame", box)
+				outline.Size = UDim2.new(1, 0, 1, 0)
+				outline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+				outline.BorderSizePixel = 0
+
+				local frame = Instance.new("Frame", outline)
+				frame.Position = UDim2.new(0, 2, 0, 2)
+				frame.Size = UDim2.new(1, -4, 1, -4)
 				frame.BackgroundColor3 = espBoxColor
 				frame.BorderSizePixel = 0
 			end
@@ -114,10 +124,18 @@ end
 RunService.RenderStepped:Connect(function()
 	if _G.espEnabled then
 		createESP()
+	else
+		for _, plr in pairs(Players:GetPlayers()) do
+			if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+				local head = plr.Character.Head
+				local existing = head:FindFirstChild("FCS_Box")
+				if existing then existing:Destroy() end
+			end
+		end
 	end
 end)
 
--- Head Tracking Circle
+-- Mouse Circle
 local circle = Drawing.new("Circle")
 circle.Transparency = 1
 circle.Thickness = 1.5
@@ -126,17 +144,19 @@ circle.Filled = false
 RunService.RenderStepped:Connect(function()
 	if _G.headTrack then
 		circle.Visible = true
-		circle.Position = Vector2.new(mouse.X, mouse.Y)
+		circle.Position = Vector2.new(mouse.X, mouse.Y + 3) -- Fix circle too high
 		circle.Radius = circleSize
 		circle.Color = circleColor
 
 		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 			for _, plr in pairs(Players:GetPlayers()) do
 				if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-					local headPos = workspace.CurrentCamera:WorldToViewportPoint(plr.Character.Head.Position)
-					local dist = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
-					if dist < circleSize then
-						workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, plr.Character.Head.Position)
+					local headPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(plr.Character.Head.Position)
+					if onScreen then
+						local dist = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+						if dist < circleSize then
+							workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, plr.Character.Head.Position)
+						end
 					end
 				end
 			end
@@ -146,7 +166,7 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Settings - Color pickers and slider
+-- Settings - Color Picker & Slider
 local function createColorPicker(parent, labelText, defaultColor, callback)
 	local label = Instance.new("TextLabel", parent)
 	label.Text = labelText
@@ -157,7 +177,7 @@ local function createColorPicker(parent, labelText, defaultColor, callback)
 	local colorInput = Instance.new("TextBox", parent)
 	colorInput.Size = UDim2.new(0, 100, 0, 20)
 	colorInput.Position = UDim2.new(0, 110, 0, 0)
-	colorInput.Text = tostring(defaultColor)
+	colorInput.Text = string.format("%d, %d, %d", defaultColor.R * 255, defaultColor.G * 255, defaultColor.B * 255)
 	colorInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	colorInput.TextColor3 = Color3.new(1, 1, 1)
 
@@ -170,6 +190,8 @@ local function createColorPicker(parent, labelText, defaultColor, callback)
 			callback(result)
 		end
 	end)
+
+	return colorInput
 end
 
 local function createSlider(parent)
@@ -187,6 +209,8 @@ local function createSlider(parent)
 			circleSize = val
 		end
 	end)
+
+	return slider
 end
 
 -- Populate "Stuff"
