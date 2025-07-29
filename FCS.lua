@@ -102,6 +102,11 @@ local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
+-- Circle Size Slider
+createColorSlider(Pages["Settings"], "Circle Size:", circleSize, 90, function(val)
+	circleSize = math.clamp(val, 10, 300)
+end)
+
 --// ESP LOGIC (Highlight Box) //--  
 local function createESP(plr)
 	if plr == player then return end
