@@ -1,3 +1,4 @@
+-- [ SERVICES ]
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,7 +14,7 @@ game.StarterGui:SetCore("ChatMakeSystemMessage", {
 	FontSize = Enum.FontSize.Size24;
 })
 
--- GUI Creation
+-- [ GUI CREATION ]
 local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 ScreenGui.Name = "FCS_Menu"
 
@@ -29,7 +30,6 @@ MainFrame.Visible = true
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 10)
 
--- Header
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 30)
 Header.BackgroundTransparency = 1
@@ -88,6 +88,8 @@ local function createCheckbox(parent, labelText)
 			_G.espEnabled = state
 		elseif labelText == "Head Track" then
 			_G.headTrack = state
+		elseif labelText == "Silent Aim" then
+			_G.silentAim = state
 		end
 	end)
 
@@ -143,7 +145,7 @@ RunService.RenderStepped:Connect(function()
 		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 			for _, plr in pairs(Players:GetPlayers()) do
 				if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-					if not plr.Character:FindFirstChild("Ragdoll") then -- skip ragdoll
+					if not plr.Character:FindFirstChild("Ragdoll") then
 						local headPos, onscreen = workspace.CurrentCamera:WorldToViewportPoint(plr.Character.Head.Position + Vector3.new(0,0.4,0))
 						if onscreen then
 							local dist = (Vector2.new(headPos.X, headPos.Y) - circle.Position).Magnitude
@@ -158,6 +160,49 @@ RunService.RenderStepped:Connect(function()
 	else
 		circle.Visible = false
 	end
+end)
+
+-- Silent Aim Logic
+local function getClosestTargetToCrosshair(radius)
+	local closest = nil
+	local shortest = radius or 100
+	local cam = workspace.CurrentCamera
+
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
+			if not plr.Character:FindFirstChild("Ragdoll") then
+				local pos, onScreen = cam:WorldToViewportPoint(plr.Character.Head.Position)
+				if onScreen then
+					local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+					if dist < shortest then
+						shortest = dist
+						closest = plr
+					end
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- __namecall hook for Silent Aim
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+	local args = {...}
+	local method = getnamecallmethod()
+
+	if _G.silentAim and method == "FireServer" and typeof(args[1]) == "Vector3" then
+		local target = getClosestTargetToCrosshair(100)
+		if target and target.Character and target.Character:FindFirstChild("Head") then
+			args[1] = target.Character.Head.Position + Vector3.new(0, 0.2, 0)
+			return oldNamecall(self, unpack(args))
+		end
+	end
+
+	return oldNamecall(self, ...)
 end)
 
 -- Settings Sliders
@@ -196,9 +241,10 @@ createColorSlider(Pages["Settings"], "Red:", r, 0, function(val) r=val preview.B
 createColorSlider(Pages["Settings"], "Green:", g, 30, function(val) g=val preview.BackgroundColor3=Color3.fromRGB(r,g,b) espBoxColor=preview.BackgroundColor3 end)
 createColorSlider(Pages["Settings"], "Blue:", b, 60, function(val) b=val preview.BackgroundColor3=Color3.fromRGB(r,g,b) espBoxColor=preview.BackgroundColor3 end)
 
--- Populate Stuff
+-- Populate Stuff Page
 createCheckbox(Pages["Stuff"], "ESP").Position = UDim2.new(0, 10, 0, 0)
 createCheckbox(Pages["Stuff"], "Head Track").Position = UDim2.new(0, 10, 0, 40)
+createCheckbox(Pages["Stuff"], "Silent Aim").Position = UDim2.new(0, 10, 0, 80)
 
 -- Tab Switching
 StuffBtn.MouseButton1Click:Connect(function()
