@@ -9,6 +9,10 @@ local mouse = player:GetMouse()
 _G.espEnabled = false
 _G.headTrack = false
 
+-- Notificatiom
+print("[FCS MENU] Loaded successfully.")
+
+
 -- GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FCS_Menu"
