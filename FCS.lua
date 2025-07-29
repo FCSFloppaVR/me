@@ -1,17 +1,15 @@
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
+local Camera = workspace.CurrentCamera
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 
--- Use CoreGui to avoid deletion on reset
+-- Main GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FCS_Menu"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- GUI: Main Frame
 local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.Size = UDim2.new(0, 300, 0, 250)
 MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
@@ -22,11 +20,9 @@ MainFrame.Draggable = true
 MainFrame.Visible = true
 MainFrame.ClipsDescendants = true
 
--- Rounded Corners
 local UICorner = Instance.new("UICorner", MainFrame)
 UICorner.CornerRadius = UDim.new(0, 10)
 
--- Header
 local Header = Instance.new("TextLabel", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 30)
 Header.BackgroundTransparency = 1
@@ -35,7 +31,6 @@ Header.TextColor3 = Color3.fromRGB(0, 255, 255)
 Header.Font = Enum.Font.GothamBold
 Header.TextSize = 20
 
--- Tabs
 local TabButtons = Instance.new("Frame", MainFrame)
 TabButtons.Size = UDim2.new(1, 0, 0, 30)
 TabButtons.Position = UDim2.new(0, 0, 0, 30)
@@ -55,7 +50,6 @@ end
 local StuffBtn = createTabButton("Stuff", 0)
 local SettingsBtn = createTabButton("Settings", 150)
 
--- Pages
 local Pages = {}
 for _, name in ipairs({ "Stuff", "Settings" }) do
 	local page = Instance.new("Frame", MainFrame)
@@ -66,10 +60,10 @@ for _, name in ipairs({ "Stuff", "Settings" }) do
 	Pages[name] = page
 end
 
--- Checkboxes
-local function createCheckbox(parent, labelText)
+local function createCheckbox(parent, labelText, yPos)
 	local checkbox = Instance.new("TextButton", parent)
 	checkbox.Size = UDim2.new(0, 280, 0, 30)
+	checkbox.Position = UDim2.new(0, 10, 0, yPos)
 	checkbox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	checkbox.BorderSizePixel = 0
 	checkbox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -95,29 +89,37 @@ local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
--- ESP
-local function createESP()
+-- JJSploit-Style Box ESP
+local function clearESP()
 	for _, plr in pairs(Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-			local head = plr.Character.Head
-			if not head:FindFirstChild("FCS_Box") then
-				local box = Instance.new("BillboardGui", head)
-				box.Name = "FCS_Box"
-				box.Size = UDim2.new(0, 80, 0, 40)
-				box.AlwaysOnTop = true
-				box.LightInfluence = 0
-
-				local outline = Instance.new("Frame", box)
-				outline.Size = UDim2.new(1, 0, 1, 0)
-				outline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-				outline.BorderSizePixel = 0
-
-				local frame = Instance.new("Frame", outline)
-				frame.Position = UDim2.new(0, 2, 0, 2)
-				frame.Size = UDim2.new(1, -4, 1, -4)
-				frame.BackgroundColor3 = espBoxColor
-				frame.BorderSizePixel = 0
+		if plr.Character then
+			local part = plr.Character:FindFirstChild("HumanoidRootPart")
+			if part then
+				for _, ad in pairs(part:GetChildren()) do
+					if ad:IsA("BoxHandleAdornment") and ad.Name == "FCS_Box" then
+						ad:Destroy()
+					end
+				end
 			end
+		end
+	end
+end
+
+local function createESP()
+	clearESP()
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local root = plr.Character.HumanoidRootPart
+			local box = Instance.new("BoxHandleAdornment")
+			box.Name = "FCS_Box"
+			box.Size = root.Size + Vector3.new(1.5, 1.5, 1.5)
+			box.Adornee = root
+			box.AlwaysOnTop = true
+			box.ZIndex = 5
+			box.Color3 = espBoxColor
+			box.Transparency = 0
+			box.BorderSizePixel = 0
+			box.Parent = root
 		end
 	end
 end
@@ -126,17 +128,11 @@ RunService.RenderStepped:Connect(function()
 	if _G.espEnabled then
 		createESP()
 	else
-		for _, plr in pairs(Players:GetPlayers()) do
-			if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-				local head = plr.Character.Head
-				local existing = head:FindFirstChild("FCS_Box")
-				if existing then existing:Destroy() end
-			end
-		end
+		clearESP()
 	end
 end)
 
--- Mouse Circle
+-- Circle (centered)
 local circle = Drawing.new("Circle")
 circle.Transparency = 1
 circle.Thickness = 1.5
@@ -145,18 +141,18 @@ circle.Filled = false
 RunService.RenderStepped:Connect(function()
 	if _G.headTrack then
 		circle.Visible = true
-		circle.Position = Vector2.new(mouse.X, mouse.Y + 3)
+		circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 		circle.Radius = circleSize
 		circle.Color = circleColor
 
 		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 			for _, plr in pairs(Players:GetPlayers()) do
 				if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-					local headPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(plr.Character.Head.Position)
+					local headPos, onScreen = Camera:WorldToViewportPoint(plr.Character.Head.Position)
 					if onScreen then
-						local dist = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+						local dist = (Vector2.new(headPos.X, headPos.Y) - circle.Position).Magnitude
 						if dist < circleSize then
-							workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, plr.Character.Head.Position)
+							Camera.CFrame = CFrame.new(Camera.CFrame.Position, plr.Character.Head.Position)
 						end
 					end
 				end
@@ -167,17 +163,18 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Settings: Color Pickers + Slider
-local function createColorPicker(parent, labelText, defaultColor, callback)
+-- Settings
+local function createColorInput(parent, labelText, yPos, defaultColor, callback)
 	local label = Instance.new("TextLabel", parent)
 	label.Text = labelText
 	label.Size = UDim2.new(0, 100, 0, 20)
+	label.Position = UDim2.new(0, 0, 0, yPos)
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.BackgroundTransparency = 1
 
 	local colorInput = Instance.new("TextBox", parent)
 	colorInput.Size = UDim2.new(0, 100, 0, 20)
-	colorInput.Position = UDim2.new(0, 110, 0, 0)
+	colorInput.Position = UDim2.new(0, 110, 0, yPos)
 	colorInput.Text = string.format("%d, %d, %d", defaultColor.R * 255, defaultColor.G * 255, defaultColor.B * 255)
 	colorInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	colorInput.TextColor3 = Color3.new(1, 1, 1)
@@ -191,14 +188,12 @@ local function createColorPicker(parent, labelText, defaultColor, callback)
 			callback(result)
 		end
 	end)
-
-	return colorInput
 end
 
-local function createSlider(parent)
+local function createSlider(parent, yPos)
 	local slider = Instance.new("TextBox", parent)
 	slider.Size = UDim2.new(0, 200, 0, 25)
-	slider.Position = UDim2.new(0, 0, 0, 30)
+	slider.Position = UDim2.new(0, 0, 0, yPos)
 	slider.Text = tostring(circleSize)
 	slider.TextColor3 = Color3.new(1, 1, 1)
 	slider.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -210,25 +205,24 @@ local function createSlider(parent)
 			circleSize = val
 		end
 	end)
-
-	return slider
 end
 
--- Populate Tabs
-createCheckbox(Pages["Stuff"], "ESP").Position = UDim2.new(0, 10, 0, 0)
-createCheckbox(Pages["Stuff"], "Head Track").Position = UDim2.new(0, 10, 0, 40)
+-- Stuff Tab
+createCheckbox(Pages["Stuff"], "ESP", 0)
+createCheckbox(Pages["Stuff"], "Head Track", 40)
 
-createColorPicker(Pages["Settings"], "ESP Color (r,g,b):", espBoxColor, function(color)
+-- Settings Tab
+createColorInput(Pages["Settings"], "ESP Color (r,g,b):", 0, espBoxColor, function(color)
 	espBoxColor = color
 end)
 
-createColorPicker(Pages["Settings"], "Circle Color (r,g,b):", circleColor, function(color)
+createColorInput(Pages["Settings"], "Circle Color (r,g,b):", 30, circleColor, function(color)
 	circleColor = color
-end).Position = UDim2.new(0, 0, 0, 30)
+end)
 
-createSlider(Pages["Settings"]).Position = UDim2.new(0, 0, 0, 60)
+createSlider(Pages["Settings"], 60)
 
--- Tab Switching
+-- Tab Switch
 StuffBtn.MouseButton1Click:Connect(function()
 	Pages["Stuff"].Visible = true
 	Pages["Settings"].Visible = false
@@ -239,11 +233,10 @@ SettingsBtn.MouseButton1Click:Connect(function()
 	Pages["Settings"].Visible = true
 end)
 
--- Toggle GUI with \
+-- GUI toggle with \
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.BackSlash then
 		MainFrame.Visible = not MainFrame.Visible
-
 		if MainFrame.Visible then
 			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 			UserInputService.MouseIconEnabled = true
