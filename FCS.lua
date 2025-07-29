@@ -72,7 +72,7 @@ for _, name in ipairs({ "Stuff", "Settings" }) do
 	Pages[name] = page
 end
 
---// CHECKBOXES (Stuff Tab) //--
+--// CHECKBOXES //--
 local function createCheckbox(parent, labelText)
 	local checkbox = Instance.new("TextButton", parent)
 	checkbox.Size = UDim2.new(0, 280, 0, 30)
@@ -97,20 +97,59 @@ local function createCheckbox(parent, labelText)
 	return checkbox
 end
 
---// ESP SETTINGS //--
+--// SETTINGS //--
 local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
---// SETTINGS: CIRCLE SIZE SLIDER //--
-createNumberSlider(Pages["Settings"], "Circle Size:", circleSize, 90, function(val)
-	local clamped = math.clamp(val, 10, 300)
-	circleSize = clamped
-end)
+--// DRAWING CIRCLE //--
+local circle = Drawing.new("Circle")
+circle.Transparency = 1
+circle.Thickness = 1.5
+circle.Filled = false
+circle.Visible = false
 
+--// NUMBER SLIDER FUNCTION //--
+local function createNumberSlider(parent, labelText, default, offsetY, callback)
+	local label = Instance.new("TextLabel", parent)
+	label.Text = labelText
+	label.Size = UDim2.new(0, 60, 0, 20)
+	label.Position = UDim2.new(0, 0, 0, offsetY)
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundTransparency = 1
 
+	local slider = Instance.new("TextBox", parent)
+	slider.Size = UDim2.new(0, 150, 0, 20)
+	slider.Position = UDim2.new(0, 70, 0, offsetY)
+	slider.Text = tostring(default)
+	slider.TextColor3 = Color3.new(1, 1, 1)
+	slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
+	slider.ClearTextOnFocus = false
 
---// ESP LOGIC (Highlight Outline) //--
+	slider.FocusLost:Connect(function()
+		local val = tonumber(slider.Text)
+		if val then
+			local clamped = math.clamp(val, 10, 300)
+			circleSize = clamped
+			slider.Text = tostring(clamped)
+			callback(clamped)
+		end
+	end)
+end
+
+--// SETTINGS SLIDERS //--
+local r, g, b = 0, 255, 255
+local preview = Instance.new("Frame", Pages["Settings"])
+preview.Size = UDim2.new(0, 50, 0, 50)
+preview.Position = UDim2.new(0, 230, 0, 0)
+preview.BackgroundColor3 = Color3.fromRGB(r, g, b)
+
+createNumberSlider(Pages["Settings"], "Red:", r, 0, function(val) r = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
+createNumberSlider(Pages["Settings"], "Green:", g, 30, function(val) g = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
+createNumberSlider(Pages["Settings"], "Blue:", b, 60, function(val) b = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
+createNumberSlider(Pages["Settings"], "Circle Size:", circleSize, 90, function(val) circleSize = val end)
+
+--// ESP LOGIC //--
 local function createESP(plr)
 	if plr == player then return end
 
@@ -136,64 +175,26 @@ local function createESP(plr)
 	end)
 end
 
--- Apply ESP to existing players
 for _, plr in ipairs(Players:GetPlayers()) do
 	createESP(plr)
 end
 
--- Handle new players
 Players.PlayerAdded:Connect(createESP)
 
--- Update color or remove on disable
 RunService.RenderStepped:Connect(function()
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= player and plr.Character then
 			local box = plr.Character:FindFirstChild("FCS_Box")
 			if _G.espEnabled then
-				if box then
-					box.OutlineColor = espBoxColor
-				end
+				if box then box.OutlineColor = espBoxColor end
 			else
-				if box then
-					box:Destroy()
-				end
+				if box then box:Destroy() end
 			end
 		end
 	end
 end)
 
-
--- Handle new players joining
-Players.PlayerAdded:Connect(function(newPlr)
-	createESP(newPlr)
-end)
-
--- Update ESP color if changed in settings
-RunService.RenderStepped:Connect(function()
-	if _G.espEnabled then
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr ~= player and plr.Character and plr.Character:FindFirstChild("FCS_Box") then
-				local box = plr.Character.FCS_Box
-				box.OutlineColor = espBoxColor
-			end
-		end
-	else
-		for _, plr in ipairs(Players:GetPlayers()) do
-			if plr.Character and plr.Character:FindFirstChild("FCS_Box") then
-				plr.Character.FCS_Box:Destroy()
-			end
-		end
-	end
-end)
-
-
---// HEAD TRACKING (Circle + Camera Lock) //--  
-local circle = Drawing.new("Circle")
-circle.Transparency = 1
-circle.Thickness = 1.5
-circle.Filled = false
-circle.Visible = false
-
+--// HEAD TRACKING //--
 RunService.RenderStepped:Connect(function()
 	if _G.headTrack then
 		circle.Visible = true
@@ -213,49 +214,12 @@ RunService.RenderStepped:Connect(function()
 					end
 				end
 			end
-		end
 	else
 		circle.Visible = false
 	end
 end)
 
---// SETTINGS TAB (Color Sliders) //--
-local function createColorSlider(parent, labelText, default, offsetY, callback)
-	local label = Instance.new("TextLabel", parent)
-	label.Text = labelText
-	label.Size = UDim2.new(0, 60, 0, 20)
-	label.Position = UDim2.new(0, 0, 0, offsetY)
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.BackgroundTransparency = 1
-
-	local slider = Instance.new("TextBox", parent)
-	slider.Size = UDim2.new(0, 150, 0, 20)
-	slider.Position = UDim2.new(0, 70, 0, offsetY)
-	slider.Text = tostring(default)
-	slider.TextColor3 = Color3.new(1, 1, 1)
-	slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	slider.ClearTextOnFocus = false
-
-	slider.FocusLost:Connect(function()
-		local val = tonumber(slider.Text)
-		if val then callback(math.clamp(val, 0, 255)) end
-	end)
-
-	return slider
-end
-
---// SETTINGS TAB UI //--
-local r, g, b = 0, 255, 255
-local preview = Instance.new("Frame", Pages["Settings"])
-preview.Size = UDim2.new(0, 50, 0, 50)
-preview.Position = UDim2.new(0, 230, 0, 0)
-preview.BackgroundColor3 = Color3.fromRGB(r, g, b)
-
-createColorSlider(Pages["Settings"], "Red:", r, 0, function(val) r = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
-createColorSlider(Pages["Settings"], "Green:", g, 30, function(val) g = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
-createColorSlider(Pages["Settings"], "Blue:", b, 60, function(val) b = val; preview.BackgroundColor3 = Color3.fromRGB(r, g, b); espBoxColor = preview.BackgroundColor3 end)
-
---// ADD CHECKBOXES TO STUFF TAB //--
+--// ADD CHECKBOXES //--
 createCheckbox(Pages["Stuff"], "ESP").Position = UDim2.new(0, 10, 0, 0)
 createCheckbox(Pages["Stuff"], "Head Track").Position = UDim2.new(0, 10, 0, 40)
 
