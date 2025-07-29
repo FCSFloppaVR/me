@@ -102,42 +102,66 @@ local espBoxColor = Color3.fromRGB(0, 255, 255)
 local circleColor = Color3.fromRGB(0, 255, 255)
 local circleSize = 100
 
--- Circle Size Slider
-createColorSlider(Pages["Settings"], "Circle Size:", circleSize, 90, function(val)
-	circleSize = math.clamp(val, 10, 300)
+--// SETTINGS: CIRCLE SIZE SLIDER //--
+createNumberSlider(Pages["Settings"], "Circle Size:", circleSize, 90, function(val)
+	local clamped = math.clamp(val, 10, 300)
+	circleSize = clamped
 end)
 
---// ESP LOGIC (Highlight Box) //--  
+
+
+--// ESP LOGIC (Highlight Outline) //--
 local function createESP(plr)
 	if plr == player then return end
-	local function applyHighlight(character)
-		if not character:FindFirstChild("FCS_Box") then
+
+	local function applyHighlight(char)
+		if not char:FindFirstChild("FCS_Box") then
 			local highlight = Instance.new("Highlight")
 			highlight.Name = "FCS_Box"
 			highlight.FillTransparency = 1
 			highlight.OutlineColor = espBoxColor
 			highlight.OutlineTransparency = 0
-			highlight.Adornee = character
-			highlight.Parent = character
+			highlight.Adornee = char
+			highlight.Parent = char
 		end
 	end
 
-	-- Apply to current character
 	if plr.Character then
 		applyHighlight(plr.Character)
 	end
 
-	-- Re-apply after respawn
 	plr.CharacterAdded:Connect(function(char)
 		char:WaitForChild("HumanoidRootPart", 5)
 		applyHighlight(char)
 	end)
 end
 
--- Apply ESP to all current players
-for _, otherPlayer in ipairs(Players:GetPlayers()) do
-	createESP(otherPlayer)
+-- Apply ESP to existing players
+for _, plr in ipairs(Players:GetPlayers()) do
+	createESP(plr)
 end
+
+-- Handle new players
+Players.PlayerAdded:Connect(createESP)
+
+-- Update color or remove on disable
+RunService.RenderStepped:Connect(function()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+			local box = plr.Character:FindFirstChild("FCS_Box")
+			if _G.espEnabled then
+				if box then
+					box.OutlineColor = espBoxColor
+				end
+			else
+				if box then
+					box:Destroy()
+				end
+			end
+		end
+	end
+end)
+
 
 -- Handle new players joining
 Players.PlayerAdded:Connect(function(newPlr)
@@ -163,16 +187,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
---// HEAD TRACKING (Circle + Camera Lock) //--
+--// HEAD TRACKING (Circle + Camera Lock) //--  
 local circle = Drawing.new("Circle")
 circle.Transparency = 1
 circle.Thickness = 1.5
 circle.Filled = false
+circle.Visible = false
 
 RunService.RenderStepped:Connect(function()
 	if _G.headTrack then
 		circle.Visible = true
-		circle.Position = Vector2.new(workspace.CurrentCamera.ViewportSize.X/2, workspace.CurrentCamera.ViewportSize.Y/2)
+		circle.Position = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
 		circle.Radius = circleSize
 		circle.Color = circleColor
 
