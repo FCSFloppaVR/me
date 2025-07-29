@@ -10,8 +10,12 @@ _G.espEnabled = false
 _G.headTrack = false
 
 -- Notificatiom
-print("[FCS MENU] Loaded successfully.")
-
+game.StarterGui:SetCore("ChatMakeSystemMessage", {
+	Text = "[FCS MENU] Loaded successfully.";
+	Color = Color3.fromRGB(0, 255, 255);
+	Font = Enum.Font.SourceSansBold;
+	FontSize = Enum.FontSize.Size24;
+})
 
 -- GUI
 local ScreenGui = Instance.new("ScreenGui")
