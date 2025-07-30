@@ -34,7 +34,16 @@ mainFrame.Size = UDim2.new(0, 600, 0, 350)
 mainFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
 mainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 mainFrame.BorderSizePixel = 0
+mainFrame.Draggable = true
+mainFrame.Active = true
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundTransparency = 0
+mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = mainFrame
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
@@ -53,15 +62,24 @@ tabFrame.Size = UDim2.new(0, 120, 1, 0)
 tabFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
 tabFrame.Parent = mainFrame
 
+local tabCorner = Instance.new("UICorner")
+tabCorner.CornerRadius = UDim.new(0, 12)
+tabCorner.Parent = tabFrame
+
 for i, tabName in ipairs(tabs) do
     local tabButton = Instance.new("TextButton")
-    tabButton.Size = UDim2.new(1, 0, 0, 40)
-    tabButton.Position = UDim2.new(0, 0, 0, 40 * (i-1))
+    tabButton.Size = UDim2.new(0.9, 0, 0, 30)
+    tabButton.Position = UDim2.new(0.05, 0, 0, 45 * (i-1))
     tabButton.Text = tabName
     tabButton.Font = Enum.Font.SourceSansBold
     tabButton.TextColor3 = Color3.new(1, 1, 1)
-    tabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    tabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabButton.BorderSizePixel = 0
     tabButton.Parent = tabFrame
+
+    local tabBtnCorner = Instance.new("UICorner")
+    tabBtnCorner.CornerRadius = UDim.new(0, 10)
+    tabBtnCorner.Parent = tabButton
 
     local content = Instance.new("Frame")
     content.Size = UDim2.new(1, -120, 1, -40)
@@ -77,7 +95,49 @@ for i, tabName in ipairs(tabs) do
     end)
 end
 
--- DISCORD TAB
+-- Toggle menu with "P"
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.P then
+        mainFrame.Visible = not mainFrame.Visible
+    end
+end)
+
+-- BUTTON CREATOR FUNCTION
+local function createToggleButton(parent, text, settingKey)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 180, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.Text = text
+    btn.Font = Enum.Font.SourceSans
+    btn.TextScaled = true
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local function updateColor()
+        btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,40)
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        settings[settingKey] = not settings[settingKey]
+        updateColor()
+    end)
+
+    updateColor()
+end
+
+-- AIM TAB BUTTONS
+createToggleButton(contentFrames["AIM"], "Enable Aimbot", "aimEnabled")
+createToggleButton(contentFrames["AIM"], "Enable Head Tracking", "headTracking")
+
+-- VISUAL TAB BUTTONS
+createToggleButton(contentFrames["visuals"], "Enable ESP", "espEnabled")
+createToggleButton(contentFrames["visuals"], "Enable FPS Boost", "fpsBoost")
+
+-- DISCORD BUTTON
 local discordButton = Instance.new("TextButton")
 discordButton.Size = UDim2.new(0, 200, 0, 40)
 discordButton.Position = UDim2.new(0, 20, 0, 20)
@@ -88,6 +148,10 @@ discordButton.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
 discordButton.TextColor3 = Color3.new(1, 1, 1)
 discordButton.Parent = contentFrames["Discord"]
 
+local dcCorner = Instance.new("UICorner")
+dcCorner.CornerRadius = UDim.new(0, 10)
+dcCorner.Parent = discordButton
+
 discordButton.MouseButton1Click:Connect(function()
     setclipboard("https://discord.gg/yourserver")
     StarterGui:SetCore("SendNotification", {
@@ -97,7 +161,7 @@ discordButton.MouseButton1Click:Connect(function()
     })
 end)
 
--- AIM TAB: Aimbot and Head Tracking
+-- AIM CIRCLE
 local aimCircle = Drawing.new("Circle")
 aimCircle.Visible = settings.circleVisible
 aimCircle.Radius = settings.circleSize
@@ -105,22 +169,11 @@ aimCircle.Color = Color3.new(1, 1, 1)
 aimCircle.Thickness = 1
 aimCircle.Filled = false
 
-game:GetService("RunService").RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     aimCircle.Position = Vector2.new(mouse.X, mouse.Y)
 end)
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        settings.headTracking = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        settings.headTracking = false
-    end
-end)
-
+-- Aimbot Tracking
 local function getClosestPlayerToCursor()
     local closest
     local shortest = math.huge
@@ -142,7 +195,7 @@ local function getClosestPlayerToCursor()
 end
 
 RunService.RenderStepped:Connect(function()
-    if settings.headTracking then
+    if settings.aimEnabled or settings.headTracking then
         local target = getClosestPlayerToCursor()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.Head.Position), 0.1)
@@ -150,7 +203,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- SIMPLE ESP
+-- ESP HIGHLIGHT
 local function drawBox(plr)
     if plr == player or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
     if not plr.Character:FindFirstChild("FCS_Box") then
@@ -186,12 +239,10 @@ if settings.fpsBoost then
     end
 end
 
--- FUTURE ADDITIONS (Instructions Below)
 --[[
 To add new features:
-1. Create new tab buttons and content frames (use existing ones as templates).
-2. Insert buttons, sliders using Instance.new("TextButton") / Slider module.
-3. Use `.MouseButton1Click` to toggle booleans or run functions.
-4. Connect features to settings table (e.g., settings.aimEnabled).
-5. Store/load settings via DataStore or LocalStorage if needed.
+- Add more toggle buttons using `createToggleButton(parent, text, settingKey)`
+- Add sliders, dropdowns, or color pickers using similar layout
+- Use setting keys from the settings table to control behavior
+- Save/load preferences using DataStore (optional for later)
 ]]
