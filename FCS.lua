@@ -14,7 +14,6 @@ local mouse = player:GetMouse()
 -- SETTINGS
 local settings = {
     aimEnabled = false,
-    headTracking = false,
     espEnabled = false,
     espColor = Color3.fromRGB(0, 255, 0),
     circleVisible = true,
@@ -23,26 +22,29 @@ local settings = {
     fpsBoost = false
 }
 
+local isRightClickHeld = false
+
 -- GUI SETUP
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FCS_Menu"
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 600, 0, 350)
-mainFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 mainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 mainFrame.BorderSizePixel = 0
-mainFrame.Draggable = true
-mainFrame.Active = true
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.BackgroundTransparency = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Visible = true
 mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.CornerRadius = UDim.new(0, 16)
 uiCorner.Parent = mainFrame
 
 local title = Instance.new("TextLabel")
@@ -59,26 +61,26 @@ local contentFrames = {}
 
 local tabFrame = Instance.new("Frame")
 tabFrame.Size = UDim2.new(0, 120, 1, 0)
-tabFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+tabFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 tabFrame.Parent = mainFrame
 
 local tabCorner = Instance.new("UICorner")
-tabCorner.CornerRadius = UDim.new(0, 12)
+tabCorner.CornerRadius = UDim.new(0, 16)
 tabCorner.Parent = tabFrame
 
 for i, tabName in ipairs(tabs) do
     local tabButton = Instance.new("TextButton")
-    tabButton.Size = UDim2.new(0.9, 0, 0, 30)
-    tabButton.Position = UDim2.new(0.05, 0, 0, 45 * (i-1))
+    tabButton.Size = UDim2.new(0.85, 0, 0, 36)
+    tabButton.Position = UDim2.new(0.075, 0, 0, 20 + 45 * (i-1))
     tabButton.Text = tabName
     tabButton.Font = Enum.Font.SourceSansBold
     tabButton.TextColor3 = Color3.new(1, 1, 1)
-    tabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     tabButton.BorderSizePixel = 0
     tabButton.Parent = tabFrame
 
     local tabBtnCorner = Instance.new("UICorner")
-    tabBtnCorner.CornerRadius = UDim.new(0, 10)
+    tabBtnCorner.CornerRadius = UDim.new(0, 14)
     tabBtnCorner.Parent = tabButton
 
     local content = Instance.new("Frame")
@@ -95,49 +97,64 @@ for i, tabName in ipairs(tabs) do
     end)
 end
 
--- Toggle menu with "P"
+-- TOGGLE MENU VISIBILITY WITH 'P'
 UserInputService.InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.P then
         mainFrame.Visible = not mainFrame.Visible
+    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightClickHeld = true
     end
 end)
 
--- BUTTON CREATOR FUNCTION
-local function createToggleButton(parent, text, settingKey)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 180, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.Text = text
-    btn.Font = Enum.Font.SourceSans
-    btn.TextScaled = true
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-
-    local function updateColor()
-        btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0,255,0) or Color3.fromRGB(40,40,40)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightClickHeld = false
     end
+end)
+
+-- FUNCTION TO CREATE BEAUTIFUL TOGGLE BUTTONS
+local function createToggleButton(parent, labelText, settingKey)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0, 220, 0, 36)
+    container.BackgroundTransparency = 1
+    container.Parent = parent
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 28, 0, 28)
+    btn.Position = UDim2.new(0, 4, 0, 4)
+    btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(20, 20, 20)
+    btn.Text = ""
+    btn.Parent = container
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(1, 0)
+    btnCorner.Parent = btn
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -40, 1, 0)
+    label.Position = UDim2.new(0, 36, 0, 0)
+    label.Text = labelText
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextScaled = true
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
 
     btn.MouseButton1Click:Connect(function()
         settings[settingKey] = not settings[settingKey]
-        updateColor()
+        btn.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(20, 20, 20)
     end)
-
-    updateColor()
 end
 
 -- AIM TAB BUTTONS
-createToggleButton(contentFrames["AIM"], "Enable Aimbot", "aimEnabled")
-createToggleButton(contentFrames["AIM"], "Enable Head Tracking", "headTracking")
+createToggleButton(contentFrames["AIM"], "Enable Aimbot (Hold RMB)", "aimEnabled")
 
--- VISUAL TAB BUTTONS
+-- VISUALS TAB BUTTONS
 createToggleButton(contentFrames["visuals"], "Enable ESP", "espEnabled")
 createToggleButton(contentFrames["visuals"], "Enable FPS Boost", "fpsBoost")
 
--- DISCORD BUTTON
+-- DISCORD TAB
 local discordButton = Instance.new("TextButton")
 discordButton.Size = UDim2.new(0, 200, 0, 40)
 discordButton.Position = UDim2.new(0, 20, 0, 20)
@@ -173,7 +190,7 @@ RunService.RenderStepped:Connect(function()
     aimCircle.Position = Vector2.new(mouse.X, mouse.Y)
 end)
 
--- Aimbot Tracking
+-- GET TARGET
 local function getClosestPlayerToCursor()
     local closest
     local shortest = math.huge
@@ -194,8 +211,9 @@ local function getClosestPlayerToCursor()
     return closest
 end
 
+-- AIMBOT (ONLY IF ENABLED AND RMB HELD)
 RunService.RenderStepped:Connect(function()
-    if settings.aimEnabled or settings.headTracking then
+    if settings.aimEnabled and isRightClickHeld then
         local target = getClosestPlayerToCursor()
         if target and target.Character and target.Character:FindFirstChild("Head") then
             workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.Head.Position), 0.1)
@@ -203,7 +221,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ESP HIGHLIGHT
+-- ESP SYSTEM
 local function drawBox(plr)
     if plr == player or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
     if not plr.Character:FindFirstChild("FCS_Box") then
@@ -231,18 +249,10 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- FPS BOOST OPTION
+-- FPS BOOST
 if settings.fpsBoost then
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Texture") or obj:IsA("Decal") then obj:Destroy() end
         if obj:IsA("Part") or obj:IsA("MeshPart") then obj.Material = Enum.Material.SmoothPlastic obj.Reflectance = 0 end
     end
 end
-
---[[
-To add new features:
-- Add more toggle buttons using `createToggleButton(parent, text, settingKey)`
-- Add sliders, dropdowns, or color pickers using similar layout
-- Use setting keys from the settings table to control behavior
-- Save/load preferences using DataStore (optional for later)
-]]
